@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 
+#include "ofxOsc.h"
 #include "ofxDmx.h"
 #include "ofxImGui.h"
 
@@ -18,6 +19,8 @@ class ofApp : public ofBaseApp{
 public:
 	void setup() {
 		
+		osc.setup(8000);
+		
 		for (int i = 0; i < 3; i++) {
 			channels.push_back((Light){false, 0.0f});
 		}
@@ -33,8 +36,24 @@ public:
 		deltaTime = elapsedTime - prevElapsedTime;
 		prevElapsedTime = elapsedTime;
 		
-		amp = (float)ofGetMouseX() / ofGetWidth();
 		
+		while (osc.hasWaitingMessages()) {
+			ofxOscMessage m;
+			osc.getNextMessage(&m);
+			string address = m.getAddress();
+			
+			if (address == "/light/ch1") {
+				channels[0].on = m.getArgAsBool(0);
+			} else if (address == "/light/ch2") {
+				channels[1].on = m.getArgAsBool(0);
+			} else if (address == "/light/ch3") {
+				channels[2].on = m.getArgAsBool(0);
+			} else if (address == "/light/amp") {
+				amp = m.getArgAsFloat(0);
+			}
+		}
+		
+//
 		
 		for (int i = 0; i < channels.size(); i++) {
 			
@@ -94,8 +113,13 @@ public:
 		setChannelByKey(key, false);
 	}
 	
+	void mouseMoved(int x, int y) {
+		amp = (float)ofGetMouseX() / ofGetWidth();
+	}
+	
 	ofxImGui::Gui	gui;
 	ofxDmx			dmx;
+	ofxOscReceiver osc;
 	
 	float			amp;
 	vector<Light>	channels;
